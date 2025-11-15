@@ -1,5 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import { getDatabase } from './database';
+import { storeLastEmail, clearLastEmail, storeBiometricUserId} from './biometrics';
 
 const USER_KEY = 'current_user_id';
 
@@ -42,6 +43,8 @@ export const login = async (email: string, password: string): Promise<boolean> =
 
     if (user?.id) {
       await SecureStore.setItemAsync(USER_KEY, user.id.toString());
+      await storeLastEmail(email.toLowerCase());
+      await storeBiometricUserId(user.id); 
       return true;
     }
     return false;
@@ -51,8 +54,29 @@ export const login = async (email: string, password: string): Promise<boolean> =
   }
 };
 
+// Login using biometric authentication (restores stored user session)
+export const loginWithBiometric = async (): Promise<boolean> => {
+  try {
+    const { getBiometricUserId } = await import('./biometrics');
+    const userId = await getBiometricUserId();
+    
+    if (!userId) {
+      return false;
+    }
+
+    // Restore the user session
+    await SecureStore.setItemAsync(USER_KEY, userId);
+    return true;
+  } catch (error) {
+    console.error('Biometric login error:', error);
+    return false;
+  }
+};
+
 export const logout = async (): Promise<void> => {
   await SecureStore.deleteItemAsync(USER_KEY);
+  // Don't clear last email - we need it for biometric re-login
+  // await clearLastEmail(); // Keep this commented out
 };
 
 export const checkAuthStatus = async (): Promise<boolean> => {

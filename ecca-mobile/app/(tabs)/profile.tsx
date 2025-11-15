@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Switch, Modal, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Switch, Switch, Modal, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +17,15 @@ interface Settings {
   activityReminders: boolean;
   medicationReminders: boolean;
 }
+import { 
+  isBiometricSupported, 
+  isBiometricEnrolled, 
+  isBiometricEnabled,
+  enableBiometric,
+  disableBiometric,
+  authenticateWithBiometric,
+  getBiometricType
+} from '../../lib/biometrics';
 
 export default function Settings() {
   const router = useRouter();
@@ -34,11 +43,15 @@ export default function Settings() {
   const [emergencyContactName, setEmergencyContactName] = useState('');
   const [emergencyContactPhone, setEmergencyContactPhone] = useState('');
   const [hasEmergencyContact, setHasEmergencyContact] = useState(false);
+  const [biometricSupported, setBiometricSupported] = useState(false);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [biometricType, setBiometricType] = useState('Biometric');
 
   useEffect(() => {
     loadUser();
     loadSettings();
     loadEmergencyContact();
+    checkBiometrics();
   }, []);
 
   const loadUser = async () => {
@@ -174,6 +187,66 @@ export default function Settings() {
       [{ text: 'OK' }]
     );
   };
+  const checkBiometrics = async () => {
+    const supported = await isBiometricSupported();
+    const enrolled = await isBiometricEnrolled();
+    const enabled = await isBiometricEnabled();
+    const type = await getBiometricType();
+    
+    setBiometricSupported(supported && enrolled);
+    setBiometricEnabled(enabled);
+    setBiometricType(type);
+  };
+
+  const handleBiometricToggle = async (value: boolean) => {
+    if (value) {
+      // Enabling - require authentication first
+      const authenticated = await authenticateWithBiometric();
+      if (authenticated) {
+        await enableBiometric();
+        setBiometricEnabled(true);
+        Alert.alert('Success', `${biometricType} login enabled!`);
+      } else {
+        Alert.alert('Failed', 'Authentication required to enable biometric login');
+      }
+    } else {
+      // Disabling
+      Alert.alert(
+        'Disable Biometric Login',
+        `Are you sure you want to disable ${biometricType} login?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Disable',
+            style: 'destructive',
+            onPress: async () => {
+              await disableBiometric();
+              setBiometricEnabled(false);
+            },
+          },
+        ]
+      );
+    }
+  };
+
+const handleLogout = () => {
+  Alert.alert(
+    'Logout',
+    'Are you sure you want to logout?',
+    [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Logout',
+        style: 'destructive',
+        onPress: async () => {
+          await logout();
+          // Just replace with login - simple and clean
+          router.replace('/login');
+        },
+      },
+    ]
+  );
+};
 
   return (
     <View style={styles.container}>
@@ -436,6 +509,29 @@ export default function Settings() {
             <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
           </TouchableOpacity>
         </View>
+      <View style={styles.card}>
+        <Text style={styles.label}>Email</Text>
+        <Text style={styles.value}>{user?.email}</Text>
+      </View>
+
+      {biometricSupported && (
+        <View style={styles.card}>
+          <View style={styles.settingRow}>
+            <View>
+              <Text style={styles.label}>{biometricType} Login</Text>
+              <Text style={styles.subtitle}>
+                Use {biometricType.toLowerCase()} to login quickly
+              </Text>
+            </View>
+            <Switch
+              value={biometricEnabled}
+              onValueChange={handleBiometricToggle}
+              trackColor={{ false: '#E0E0E0', true: '#007AFF' }}
+              thumbColor="#fff"
+            />
+          </View>
+        </View>
+      )}
 
         {/* Logout Button */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
@@ -618,6 +714,9 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
     flexDirection: 'row',
     gap: 6,
+    fontWeight: '600',
+    marginBottom: 5,
+    color: '#333',
   },
   optionTextWide: {
     fontSize: 13,
@@ -656,6 +755,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
     marginLeft: 12,
+  },
+  settingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  subtitle: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
   },
   logoutButton: {
     backgroundColor: '#FF3B30',

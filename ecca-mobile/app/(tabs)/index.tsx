@@ -2,6 +2,10 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
+import { checkAuthStatus, getCurrentUser } from '../../lib/auth';
+import { getHealthRecords, HealthRecord } from '../../lib/healthRecords';
+import { useFocusEffect } from '@react-navigation/native';
+import { getFitnessActivities, FitnessActivity } from '../../lib/fitnessActivities';
 import { getCurrentUser } from '../../lib/auth';
 import { getFitnessActivities } from '../../lib/fitnessActivities';
 import { getHealthRecords } from '../../lib/healthRecords';
@@ -22,6 +26,11 @@ export default function Home() {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Re-check auth when screen comes into focus
+  useFocusEffect(() => {
+    checkAuthStatus();
+  });
 
   const loadData = async () => {
     const currentUser = await getCurrentUser();
