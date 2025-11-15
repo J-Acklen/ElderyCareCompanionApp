@@ -1,13 +1,63 @@
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
-import { login } from '../lib/auth';
+import { Ionicons } from '@expo/vector-icons';
+import { login, loginWithBiometric } from '../lib/auth';
+import { 
+  isBiometricSupported, 
+  isBiometricEnrolled, 
+  isBiometricEnabled,
+  authenticateWithBiometric,
+  getBiometricType,
+  getLastEmail
+} from '../lib/biometrics';
 
 export default function Login() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricType, setBiometricType] = useState('Biometric');
+
+  useEffect(() => {
+    checkBiometricAvailability();
+  }, []);
+
+  const checkBiometricAvailability = async () => {
+    const supported = await isBiometricSupported();
+    const enrolled = await isBiometricEnrolled();
+    const enabled = await isBiometricEnabled();
+    const lastEmail = await getLastEmail();
+    const type = await getBiometricType();
+    
+    const available = supported && enrolled && enabled && lastEmail !== null;
+    setBiometricAvailable(available);
+    setBiometricType(type);
+
+    // Auto-trigger biometric if available
+    if (available) {
+      // Small delay to let UI render first
+      setTimeout(() => {
+        handleBiometricLogin();
+      }, 500);
+    }
+  };
+
+  const handleBiometricLogin = async () => {
+    const authenticated = await authenticateWithBiometric();
+    if (authenticated) {
+      // Restore user session after biometric auth
+      const success = await loginWithBiometric();
+      if (success) {
+        router.replace('/(tabs)');
+      } else {
+        Alert.alert('Error', 'Could not restore session. Please login with password.');
+      }
+    } else {
+      Alert.alert('Authentication Failed', 'Please try again or use your password.');
+    }
+  };
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -33,6 +83,20 @@ export default function Login() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Welcome Back</Text>
+      
+      {biometricAvailable && (
+        <TouchableOpacity 
+          style={styles.biometricButton}
+          onPress={handleBiometricLogin}
+        >
+          <Ionicons 
+            name={biometricType === 'Face ID' ? 'scan' : 'finger-print'} 
+            size={48} 
+            color="#007AFF" 
+          />
+          <Text style={styles.biometricText}>Login with {biometricType}</Text>
+        </TouchableOpacity>
+      )}
       
       <TextInput
         style={styles.input}
@@ -80,6 +144,21 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 30,
     textAlign: 'center',
+  },
+  biometricButton: {
+    alignItems: 'center',
+    padding: 20,
+    marginBottom: 30,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#007AFF',
+  },
+  biometricText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#007AFF',
+    fontWeight: '600',
   },
   input: {
     backgroundColor: '#fff',

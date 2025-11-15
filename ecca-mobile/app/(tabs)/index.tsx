@@ -1,8 +1,9 @@
 import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { useEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { getCurrentUser } from '../../lib/auth';
+import { checkAuthStatus, getCurrentUser } from '../../lib/auth';
 import { getHealthRecords, HealthRecord } from '../../lib/healthRecords';
+import { useFocusEffect } from '@react-navigation/native';
 import { getFitnessActivities, FitnessActivity } from '../../lib/fitnessActivities';
 
 export default function Dashboard() {
@@ -14,6 +15,11 @@ export default function Dashboard() {
   useEffect(() => {
     loadAllData();
   }, []);
+
+  // Re-check auth when screen comes into focus
+  useFocusEffect(() => {
+    checkAuthStatus();
+  });
 
   const loadAllData = async () => {
     const user = await getCurrentUser();
