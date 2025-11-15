@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Switch, Switch, Modal, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Switch, Modal, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
@@ -160,24 +160,6 @@ export default function Settings() {
 
   const toggleMedicationReminders = (value: boolean) => {
     saveSettings({ ...settings, medicationReminders: value });
-  };
-
-  const handleLogout = () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: async () => {
-            await logout();
-            router.replace('/');
-          },
-        },
-      ]
-    );
   };
 
   const showHelp = () => {
@@ -626,6 +608,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
+  },
+  value: {
+    fontSize: 16,
+    color: '#333',
+    marginTop: 4,
+    fontWeight: '500',
   },
   cardRow: {
     flexDirection: 'row',
