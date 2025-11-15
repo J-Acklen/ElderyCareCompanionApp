@@ -1,5 +1,6 @@
-import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { Tabs } from 'expo-router';
+import React from 'react';
 import { ThemeProvider, useTheme } from '../../contexts/ThemeContext';
 
 function TabLayout() {
@@ -25,7 +26,7 @@ function TabLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
             <Ionicons name="home" size={size} color={color} />
           ),
         }}
@@ -34,7 +35,7 @@ function TabLayout() {
         name="fitness"
         options={{
           title: 'Fitness',
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
             <Ionicons name="fitness" size={size} color={color} />
           ),
         }}
@@ -43,8 +44,17 @@ function TabLayout() {
         name="health"
         options={{
           title: 'Health',
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
             <Ionicons name="heart" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="calendar"
+        options={{
+          title: 'Calendar',
+          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
+            <Ionicons name="calendar" size={size} color={color} />
           ),
         }}
       />
@@ -52,7 +62,7 @@ function TabLayout() {
         name="profile"
         options={{
           title: 'Settings',
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
             <Ionicons name="settings" size={size} color={color} />
           ),
         }}
