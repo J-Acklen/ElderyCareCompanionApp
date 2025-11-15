@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { getCurrentUser } from '../../lib/auth';
 import { addFitnessActivity, getFitnessActivities, deleteFitnessActivity, FitnessActivity } from '../../lib/fitnessActivities';
+import { useSettings, formatDistance, getDistanceUnit, getScaledFonts } from '../../lib/settings';
+import { useTheme } from '../../contexts/ThemeContext';
 import BarChart from '../../components/BarChart';
 import TrendChart from '../../components/TrendChart';
 
@@ -18,6 +20,9 @@ export default function Fitness() {
   const [notes, setNotes] = useState('');
   const [userId, setUserId] = useState<number | null>(null);
   const [chartView, setChartView] = useState<'calories' | 'duration'>('calories');
+  
+  const { settings, loading: settingsLoading } = useSettings();
+  const { colors, isDark } = useTheme();
 
   useEffect(() => {
     loadUserAndActivities();
@@ -142,7 +147,6 @@ export default function Fitness() {
     return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
   };
 
-  // Chart data by activity type (calories)
   const getCaloriesByActivity = () => {
     const activityTypes: ActivityType[] = ['walking', 'running', 'cycling', 'swimming', 'yoga', 'strength'];
     
@@ -158,7 +162,6 @@ export default function Fitness() {
     }).filter(item => item.value > 0);
   };
 
-  // Chart data for duration over time
   const getDurationTrend = () => {
     return activities
       .slice(0, 7)
@@ -169,61 +172,202 @@ export default function Fitness() {
       }));
   };
 
+  const fonts = getScaledFonts(settings.textSize);
+  const distanceUnit = getDistanceUnit(settings.units);
+
+  const dynamicStyles = StyleSheet.create({
+    container: {
+      flex: 1,
+      padding: 20,
+      backgroundColor: colors.background,
+    },
+    title: {
+      fontSize: fonts.title,
+      fontWeight: 'bold',
+      marginBottom: 20,
+      color: colors.text,
+    },
+    activityButton: {
+      width: '48%',
+      backgroundColor: colors.cardBackground,
+      padding: 20,
+      borderRadius: 10,
+      alignItems: 'center',
+      marginBottom: 15,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: isDark ? 0.3 : 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    activityText: {
+      marginTop: 10,
+      fontSize: fonts.label,
+      fontWeight: '600',
+      textAlign: 'center',
+      color: colors.text,
+    },
+    sectionTitle: {
+      fontSize: fonts.sectionTitle,
+      fontWeight: 'bold',
+      marginBottom: 15,
+      color: colors.text,
+    },
+    chartSelectorButton: {
+      flex: 1,
+      paddingVertical: 10,
+      paddingHorizontal: 15,
+      backgroundColor: isDark ? '#3A3A3C' : '#E0E0E0',
+      borderRadius: 8,
+      alignItems: 'center',
+    },
+    chartSelectorText: {
+      fontSize: fonts.caption,
+      color: colors.secondaryText,
+      fontWeight: '600',
+    },
+    emptyText: {
+      textAlign: 'center',
+      color: colors.secondaryText,
+      fontSize: fonts.body,
+      marginTop: 20,
+    },
+    activityCard: {
+      backgroundColor: colors.cardBackground,
+      padding: 15,
+      borderRadius: 10,
+      marginBottom: 10,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: isDark ? 0.3 : 0.1,
+      shadowRadius: 2,
+      elevation: 2,
+    },
+    activityType: {
+      fontSize: fonts.large,
+      fontWeight: '600',
+      color: colors.text,
+    },
+    statText: {
+      fontSize: fonts.label,
+      color: colors.secondaryText,
+    },
+    activityNotes: {
+      fontSize: fonts.label,
+      color: colors.secondaryText,
+      marginBottom: 5,
+      fontStyle: 'italic',
+    },
+    activityDate: {
+      fontSize: fonts.caption,
+      color: colors.secondaryText,
+    },
+    modalContent: {
+      width: '85%',
+      backgroundColor: colors.cardBackground,
+      borderRadius: 15,
+      padding: 20,
+      maxHeight: '80%',
+    },
+    modalTitle: {
+      fontSize: fonts.sectionTitle,
+      fontWeight: 'bold',
+      marginBottom: 20,
+      textAlign: 'center',
+      color: colors.text,
+    },
+    label: {
+      fontSize: fonts.label,
+      fontWeight: '600',
+      marginBottom: 5,
+      color: colors.text,
+    },
+    input: {
+      backgroundColor: isDark ? '#3A3A3C' : '#f5f5f5',
+      padding: 12,
+      borderRadius: 8,
+      marginBottom: 15,
+      fontSize: fonts.body,
+      color: colors.text,
+    },
+    cancelButton: {
+      backgroundColor: isDark ? '#3A3A3C' : '#f5f5f5',
+      marginRight: 10,
+    },
+    cancelButtonText: {
+      color: colors.text,
+      fontSize: fonts.body,
+      fontWeight: '600',
+    },
+    saveButtonText: {
+      color: '#fff',
+      fontSize: fonts.body,
+      fontWeight: '600',
+    },
+  });
+
+  if (settingsLoading) {
+    return (
+      <View style={dynamicStyles.container}>
+        <Text style={dynamicStyles.emptyText}>Loading...</Text>
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.container}>
+    <View style={dynamicStyles.container}>
       <ScrollView>
-        <Text style={styles.title}>Log Fitness Activity</Text>
+        <Text style={dynamicStyles.title}>Log Fitness Activity</Text>
 
         <View style={styles.activitiesGrid}>
-          <TouchableOpacity style={styles.activityButton} onPress={() => openModal('walking')}>
+          <TouchableOpacity style={dynamicStyles.activityButton} onPress={() => openModal('walking')}>
             <Ionicons name="walk" size={32} color="#34C759" />
-            <Text style={styles.activityText}>Walking</Text>
+            <Text style={dynamicStyles.activityText}>Walking</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.activityButton} onPress={() => openModal('running')}>
+          <TouchableOpacity style={dynamicStyles.activityButton} onPress={() => openModal('running')}>
             <Ionicons name="fitness" size={32} color="#FF3B30" />
-            <Text style={styles.activityText}>Running</Text>
+            <Text style={dynamicStyles.activityText}>Running</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.activityButton} onPress={() => openModal('cycling')}>
+          <TouchableOpacity style={dynamicStyles.activityButton} onPress={() => openModal('cycling')}>
             <Ionicons name="bicycle" size={32} color="#007AFF" />
-            <Text style={styles.activityText}>Cycling</Text>
+            <Text style={dynamicStyles.activityText}>Cycling</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.activityButton} onPress={() => openModal('swimming')}>
+          <TouchableOpacity style={dynamicStyles.activityButton} onPress={() => openModal('swimming')}>
             <Ionicons name="water" size={32} color="#5AC8FA" />
-            <Text style={styles.activityText}>Swimming</Text>
+            <Text style={dynamicStyles.activityText}>Swimming</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.activityButton} onPress={() => openModal('yoga')}>
+          <TouchableOpacity style={dynamicStyles.activityButton} onPress={() => openModal('yoga')}>
             <Ionicons name="body" size={32} color="#FF9500" />
-            <Text style={styles.activityText}>Yoga</Text>
+            <Text style={dynamicStyles.activityText}>Yoga</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.activityButton} onPress={() => openModal('strength')}>
+          <TouchableOpacity style={dynamicStyles.activityButton} onPress={() => openModal('strength')}>
             <Ionicons name="barbell" size={32} color="#5856D6" />
-            <Text style={styles.activityText}>Strength</Text>
+            <Text style={dynamicStyles.activityText}>Strength</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Chart Section */}
-        <Text style={styles.sectionTitle}>Activity Stats</Text>
+        <Text style={dynamicStyles.sectionTitle}>Activity Stats</Text>
         
         <View style={styles.chartSelector}>
           <TouchableOpacity
-            style={[styles.chartSelectorButton, chartView === 'calories' && styles.chartSelectorButtonActive]}
+            style={[dynamicStyles.chartSelectorButton, chartView === 'calories' && styles.chartSelectorButtonActive]}
             onPress={() => setChartView('calories')}
           >
-            <Text style={[styles.chartSelectorText, chartView === 'calories' && styles.chartSelectorTextActive]}>
+            <Text style={[dynamicStyles.chartSelectorText, chartView === 'calories' && styles.chartSelectorTextActive]}>
               Calories by Activity
             </Text>
           </TouchableOpacity>
           
           <TouchableOpacity
-            style={[styles.chartSelectorButton, chartView === 'duration' && styles.chartSelectorButtonActive]}
+            style={[dynamicStyles.chartSelectorButton, chartView === 'duration' && styles.chartSelectorButtonActive]}
             onPress={() => setChartView('duration')}
           >
-            <Text style={[styles.chartSelectorText, chartView === 'duration' && styles.chartSelectorTextActive]}>
+            <Text style={[dynamicStyles.chartSelectorText, chartView === 'duration' && styles.chartSelectorTextActive]}>
               Duration Trend
             </Text>
           </TouchableOpacity>
@@ -235,13 +379,13 @@ export default function Fitness() {
           <TrendChart data={getDurationTrend()} color="#34C759" unit=" min" height={180} />
         )}
 
-        <Text style={styles.sectionTitle}>Recent Activities</Text>
+        <Text style={dynamicStyles.sectionTitle}>Recent Activities</Text>
 
         {activities.length === 0 ? (
-          <Text style={styles.emptyText}>No activities logged yet. Get moving!</Text>
+          <Text style={dynamicStyles.emptyText}>No activities logged yet. Get moving!</Text>
         ) : (
           activities.map((activity) => (
-            <View key={activity.id} style={styles.activityCard}>
+            <View key={activity.id} style={dynamicStyles.activityCard}>
               <View style={styles.activityHeader}>
                 <View style={styles.activityTitleRow}>
                   <Ionicons 
@@ -249,7 +393,7 @@ export default function Fitness() {
                     size={24} 
                     color={getActivityColor(activity.activity_type)}
                   />
-                  <Text style={styles.activityType}>{getActivityLabel(activity.activity_type)}</Text>
+                  <Text style={dynamicStyles.activityType}>{getActivityLabel(activity.activity_type)}</Text>
                 </View>
                 <TouchableOpacity onPress={() => handleDelete(activity.id)}>
                   <Ionicons name="trash-outline" size={20} color="#FF3B30" />
@@ -259,32 +403,33 @@ export default function Fitness() {
               <View style={styles.activityStats}>
                 {activity.duration && (
                   <View style={styles.stat}>
-                    <Ionicons name="time-outline" size={16} color="#666" />
-                    <Text style={styles.statText}>{activity.duration} min</Text>
+                    <Ionicons name="time-outline" size={16} color={colors.secondaryText} />
+                    <Text style={dynamicStyles.statText}>{activity.duration} min</Text>
                   </View>
                 )}
                 {activity.distance && (
                   <View style={styles.stat}>
-                    <Ionicons name="navigate-outline" size={16} color="#666" />
-                    <Text style={styles.statText}>{activity.distance} mi</Text>
+                    <Ionicons name="navigate-outline" size={16} color={colors.secondaryText} />
+                    <Text style={dynamicStyles.statText}>
+                      {formatDistance(activity.distance, settings.units)}
+                    </Text>
                   </View>
                 )}
                 {activity.calories && (
                   <View style={styles.stat}>
-                    <Ionicons name="flame-outline" size={16} color="#666" />
-                    <Text style={styles.statText}>{activity.calories} cal</Text>
+                    <Ionicons name="flame-outline" size={16} color={colors.secondaryText} />
+                    <Text style={dynamicStyles.statText}>{activity.calories} cal</Text>
                   </View>
                 )}
               </View>
 
-              {activity.notes ? <Text style={styles.activityNotes}>{activity.notes}</Text> : null}
-              <Text style={styles.activityDate}>{formatDate(activity.recorded_at || '')}</Text>
+              {activity.notes ? <Text style={dynamicStyles.activityNotes}>{activity.notes}</Text> : null}
+              <Text style={dynamicStyles.activityDate}>{formatDate(activity.recorded_at || '')}</Text>
             </View>
           ))
         )}
       </ScrollView>
 
-      {/* Modal for adding fitness activity */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -292,40 +437,44 @@ export default function Fitness() {
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Log {getActivityLabel(selectedActivity)}</Text>
+          <View style={dynamicStyles.modalContent}>
+            <Text style={dynamicStyles.modalTitle}>Log {getActivityLabel(selectedActivity)}</Text>
 
-            <Text style={styles.label}>Duration (minutes) *</Text>
+            <Text style={dynamicStyles.label}>Duration (minutes) *</Text>
             <TextInput
-              style={styles.input}
+              style={dynamicStyles.input}
               placeholder="e.g., 30"
+              placeholderTextColor={colors.secondaryText}
               value={duration}
               onChangeText={setDuration}
               keyboardType="numeric"
             />
 
-            <Text style={styles.label}>Distance (miles)</Text>
+            <Text style={dynamicStyles.label}>Distance ({distanceUnit})</Text>
             <TextInput
-              style={styles.input}
-              placeholder="e.g., 2.5"
+              style={dynamicStyles.input}
+              placeholder={settings.units === 'metric' ? 'e.g., 4.0' : 'e.g., 2.5'}
+              placeholderTextColor={colors.secondaryText}
               value={distance}
               onChangeText={setDistance}
               keyboardType="decimal-pad"
             />
 
-            <Text style={styles.label}>Calories Burned</Text>
+            <Text style={dynamicStyles.label}>Calories Burned</Text>
             <TextInput
-              style={styles.input}
+              style={dynamicStyles.input}
               placeholder="e.g., 150"
+              placeholderTextColor={colors.secondaryText}
               value={calories}
               onChangeText={setCalories}
               keyboardType="numeric"
             />
 
-            <Text style={styles.label}>Notes (Optional)</Text>
+            <Text style={dynamicStyles.label}>Notes (Optional)</Text>
             <TextInput
-              style={[styles.input, styles.textArea]}
+              style={[dynamicStyles.input, styles.textArea]}
               placeholder="How did you feel?"
+              placeholderTextColor={colors.secondaryText}
               value={notes}
               onChangeText={setNotes}
               multiline
@@ -334,14 +483,14 @@ export default function Fitness() {
 
             <View style={styles.modalButtons}>
               <TouchableOpacity
-                style={[styles.button, styles.cancelButton]}
+                style={[styles.button, dynamicStyles.cancelButton]}
                 onPress={() => setModalVisible(false)}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text style={dynamicStyles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={[styles.button, styles.saveButton]} onPress={handleSave}>
-                <Text style={styles.saveButtonText}>Save</Text>
+                <Text style={dynamicStyles.saveButtonText}>Save</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -352,86 +501,22 @@ export default function Fitness() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: '#f5f5f5',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-  },
   activitiesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     marginBottom: 30,
   },
-  activityButton: {
-    width: '48%',
-    backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  activityText: {
-    marginTop: 10,
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 15,
-  },
   chartSelector: {
     flexDirection: 'row',
     marginBottom: 10,
     gap: 10,
   },
-  chartSelectorButton: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    backgroundColor: '#E0E0E0',
-    borderRadius: 8,
-    alignItems: 'center',
-  },
   chartSelectorButtonActive: {
     backgroundColor: '#34C759',
   },
-  chartSelectorText: {
-    fontSize: 13,
-    color: '#666',
-    fontWeight: '600',
-  },
   chartSelectorTextActive: {
     color: '#fff',
-  },
-  emptyText: {
-    textAlign: 'center',
-    color: '#666',
-    fontSize: 16,
-    marginTop: 20,
-  },
-  activityCard: {
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
   },
   activityHeader: {
     flexDirection: 'row',
@@ -444,11 +529,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
-  activityType: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-  },
   activityStats: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -460,51 +540,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 5,
   },
-  statText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  activityNotes: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 5,
-    fontStyle: 'italic',
-  },
-  activityDate: {
-    fontSize: 12,
-    color: '#999',
-  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  modalContent: {
-    width: '85%',
-    backgroundColor: '#fff',
-    borderRadius: 15,
-    padding: 20,
-    maxHeight: '80%',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 5,
-    color: '#333',
-  },
-  input: {
-    backgroundColor: '#f5f5f5',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 15,
-    fontSize: 16,
   },
   textArea: {
     height: 80,
@@ -521,21 +561,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
   },
-  cancelButton: {
-    backgroundColor: '#f5f5f5',
-    marginRight: 10,
-  },
   saveButton: {
     backgroundColor: '#007AFF',
-  },
-  cancelButtonText: {
-    color: '#333',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  saveButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
   },
 });
