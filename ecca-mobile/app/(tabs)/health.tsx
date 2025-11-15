@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { getCurrentUser } from '../../lib/auth';
 import { addHealthRecord, getHealthRecords, deleteHealthRecord, HealthRecord } from '../../lib/healthRecords';
+import TrendChart from '../../components/TrendChart';
 
 type HealthMetric = 'blood_pressure' | 'heart_rate' | 'temperature' | 'glucose' | 'weight';
 
@@ -13,6 +14,7 @@ export default function Health() {
   const [value, setValue] = useState('');
   const [notes, setNotes] = useState('');
   const [userId, setUserId] = useState<number | null>(null);
+  const [chartMetric, setChartMetric] = useState<HealthMetric>('heart_rate');
 
   useEffect(() => {
     loadUserAndRecords();
@@ -104,8 +106,32 @@ export default function Health() {
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const date = new Date(dateString + 'Z');
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  };
+
+  // Prepare chart data for selected metric
+  const getChartData = () => {
+    const filteredRecords = records
+      .filter(r => r.type === chartMetric)
+      .slice(0, 7)
+      .reverse();
+
+    return filteredRecords.map(record => ({
+      label: formatDate(record.recorded_at || ''),
+      value: parseFloat(record.value) || 0,
+    }));
+  };
+
+  const getMetricColor = (metric: HealthMetric) => {
+    const colors: { [key in HealthMetric]: string } = {
+      blood_pressure: '#007AFF',
+      heart_rate: '#FF3B30',
+      temperature: '#FF9500',
+      glucose: '#34C759',
+      weight: '#5856D6',
+    };
+    return colors[metric];
   };
 
   return (
@@ -140,6 +166,37 @@ export default function Health() {
           </TouchableOpacity>
         </View>
 
+        {/* Chart Section */}
+        <Text style={styles.sectionTitle}>Trends</Text>
+        <View style={styles.chartSelector}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {(['heart_rate', 'blood_pressure', 'temperature', 'glucose', 'weight'] as HealthMetric[]).map(metric => (
+              <TouchableOpacity
+                key={metric}
+                style={[
+                  styles.chartSelectorButton,
+                  chartMetric === metric && { backgroundColor: getMetricColor(metric) }
+                ]}
+                onPress={() => setChartMetric(metric)}
+              >
+                <Text style={[
+                  styles.chartSelectorText,
+                  chartMetric === metric && styles.chartSelectorTextActive
+                ]}>
+                  {getMetricLabel(metric)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        <TrendChart
+          data={getChartData()}
+          color={getMetricColor(chartMetric)}
+          unit={getMetricUnit(chartMetric)}
+          height={180}
+        />
+
         <Text style={styles.sectionTitle}>Recent Records</Text>
 
         {records.length === 0 ? (
@@ -157,7 +214,7 @@ export default function Health() {
                 {record.value} {getMetricUnit(record.type)}
               </Text>
               {record.notes ? <Text style={styles.recordNotes}>{record.notes}</Text> : null}
-              <Text style={styles.recordDate}>{formatDate(record.recorded_at || '')}</Text>
+              <Text style={styles.recordDate}>{new Date(record.recorded_at + 'Z').toLocaleString()}</Text>
             </View>
           ))
         )}
@@ -252,6 +309,24 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 15,
+  },
+  chartSelector: {
+    marginBottom: 10,
+  },
+  chartSelectorButton: {
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 20,
+    marginRight: 10,
+  },
+  chartSelectorText: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '600',
+  },
+  chartSelectorTextActive: {
+    color: '#fff',
   },
   emptyText: {
     textAlign: 'center',

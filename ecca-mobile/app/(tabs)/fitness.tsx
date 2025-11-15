@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { getCurrentUser } from '../../lib/auth';
 import { addFitnessActivity, getFitnessActivities, deleteFitnessActivity, FitnessActivity } from '../../lib/fitnessActivities';
+import BarChart from '../../components/BarChart';
+import TrendChart from '../../components/TrendChart';
 
 type ActivityType = 'walking' | 'running' | 'cycling' | 'swimming' | 'yoga' | 'strength';
 
@@ -15,6 +17,7 @@ export default function Fitness() {
   const [calories, setCalories] = useState('');
   const [notes, setNotes] = useState('');
   const [userId, setUserId] = useState<number | null>(null);
+  const [chartView, setChartView] = useState<'calories' | 'duration'>('calories');
 
   useEffect(() => {
     loadUserAndActivities();
@@ -117,9 +120,53 @@ export default function Fitness() {
     return icons[activity];
   };
 
+  const getActivityColor = (activity: string) => {
+    const colors: { [key: string]: string } = {
+      walking: '#34C759',
+      running: '#FF3B30',
+      cycling: '#007AFF',
+      swimming: '#5AC8FA',
+      yoga: '#FF9500',
+      strength: '#5856D6',
+    };
+    return colors[activity] || '#999';
+  };
+
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const date = new Date(dateString + 'Z');
+    return date.toLocaleString();
+  };
+
+  const formatShortDate = (dateString: string) => {
+    const date = new Date(dateString + 'Z');
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  };
+
+  // Chart data by activity type (calories)
+  const getCaloriesByActivity = () => {
+    const activityTypes: ActivityType[] = ['walking', 'running', 'cycling', 'swimming', 'yoga', 'strength'];
+    
+    return activityTypes.map(type => {
+      const typeActivities = activities.filter(a => a.activity_type === type);
+      const totalCalories = typeActivities.reduce((sum, a) => sum + (a.calories || 0), 0);
+      
+      return {
+        label: getActivityLabel(type),
+        value: totalCalories,
+        color: getActivityColor(type),
+      };
+    }).filter(item => item.value > 0);
+  };
+
+  // Chart data for duration over time
+  const getDurationTrend = () => {
+    return activities
+      .slice(0, 7)
+      .reverse()
+      .map(activity => ({
+        label: formatShortDate(activity.recorded_at || ''),
+        value: activity.duration || 0,
+      }));
   };
 
   return (
@@ -159,6 +206,35 @@ export default function Fitness() {
           </TouchableOpacity>
         </View>
 
+        {/* Chart Section */}
+        <Text style={styles.sectionTitle}>Activity Stats</Text>
+        
+        <View style={styles.chartSelector}>
+          <TouchableOpacity
+            style={[styles.chartSelectorButton, chartView === 'calories' && styles.chartSelectorButtonActive]}
+            onPress={() => setChartView('calories')}
+          >
+            <Text style={[styles.chartSelectorText, chartView === 'calories' && styles.chartSelectorTextActive]}>
+              Calories by Activity
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={[styles.chartSelectorButton, chartView === 'duration' && styles.chartSelectorButtonActive]}
+            onPress={() => setChartView('duration')}
+          >
+            <Text style={[styles.chartSelectorText, chartView === 'duration' && styles.chartSelectorTextActive]}>
+              Duration Trend
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {chartView === 'calories' ? (
+          <BarChart data={getCaloriesByActivity()} height={200} />
+        ) : (
+          <TrendChart data={getDurationTrend()} color="#34C759" unit=" min" height={180} />
+        )}
+
         <Text style={styles.sectionTitle}>Recent Activities</Text>
 
         {activities.length === 0 ? (
@@ -171,7 +247,7 @@ export default function Fitness() {
                   <Ionicons 
                     name={getActivityIcon(activity.activity_type as ActivityType)} 
                     size={24} 
-                    color="#007AFF" 
+                    color={getActivityColor(activity.activity_type)}
                   />
                   <Text style={styles.activityType}>{getActivityLabel(activity.activity_type)}</Text>
                 </View>
@@ -315,6 +391,30 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 15,
+  },
+  chartSelector: {
+    flexDirection: 'row',
+    marginBottom: 10,
+    gap: 10,
+  },
+  chartSelectorButton: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  chartSelectorButtonActive: {
+    backgroundColor: '#34C759',
+  },
+  chartSelectorText: {
+    fontSize: 13,
+    color: '#666',
+    fontWeight: '600',
+  },
+  chartSelectorTextActive: {
+    color: '#fff',
   },
   emptyText: {
     textAlign: 'center',
