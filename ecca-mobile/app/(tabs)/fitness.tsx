@@ -263,11 +263,11 @@ export default function Fitness() {
       color: colors.secondaryText,
     },
     modalContent: {
-      width: '85%',
-      backgroundColor: colors.cardBackground,
+      width: '90%',
+      maxHeight: '85%',
+      backgroundColor: '#fff',
       borderRadius: 15,
       padding: 20,
-      maxHeight: '80%',
     },
     modalTitle: {
       fontSize: fonts.sectionTitle,

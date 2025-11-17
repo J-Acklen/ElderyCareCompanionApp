@@ -59,6 +59,15 @@ function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="medications"
+        options={{
+          title: 'Medications',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="medical" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: 'Settings',
