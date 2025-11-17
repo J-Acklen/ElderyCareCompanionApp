@@ -12,6 +12,8 @@ import {
   View
 } from 'react-native';
 import { addCalendarEvent, CalendarEvent, deleteCalendarEvent, getCalendarEvents } from '../lib/calendarEvents';
+import { getCurrentUser } from '../lib/auth';
+
 
 export default function CalendarScreen() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -20,7 +22,7 @@ export default function CalendarScreen() {
   const [selectedDate, setSelectedDate] = useState<any>(null);
   const [newEvent, setNewEvent] = useState({ title: '', time: '', notes: '' });
   const [loading, setLoading] = useState(true);
-  const userId = 1; // TODO: Get from auth context
+  const [userId, setUserId] = useState<number | null>(null);
 
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -28,10 +30,24 @@ export default function CalendarScreen() {
   ];
 
   useEffect(() => {
-    loadEvents();
-  }, [currentDate]);
+    const loadUser = async () => {
+      const user = await getCurrentUser();
+      if (user?.id) {
+        setUserId(user.id);
+      }
+    };
+    loadUser();
+  }, []);
+  
+  useEffect(() => {
+    if (userId) {
+      loadEvents();
+    }
+  }, [userId, currentDate]);
 
   const loadEvents = async () => {
+    if (!userId) return;
+    
     setLoading(true);
     try {
       const allEvents = await getCalendarEvents(userId);
@@ -66,6 +82,11 @@ export default function CalendarScreen() {
   };
 
   const handleAddEvent = async () => {
+    if (!userId) {
+      Alert.alert('Error', 'User not logged in');
+      return;
+    }
+
     if (newEvent.title.trim() && selectedDate) {
       const success = await addCalendarEvent(
         userId,

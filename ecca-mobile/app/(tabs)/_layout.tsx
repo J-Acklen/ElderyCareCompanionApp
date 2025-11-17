@@ -53,7 +53,7 @@ function TabLayout() {
         name="calendar"
         options={{
           title: 'Calendar',
-          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
+          tabBarIcon: ({ color, size }) => (
             <Ionicons name="calendar" size={size} color={color} />
           ),
         }}
